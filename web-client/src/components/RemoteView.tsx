@@ -183,6 +183,33 @@ export function RemoteView({ device, wsToken, isGuest, onClose }: Props) {
     sendInput({ type: "select-monitor", index });
   }
 
+  // "원격 PC 화면의 특정 부분이 이상하다"는 문제를 그 순간 그대로 이미지로 남겨서
+  // 전달할 수 있게 한다 - 지나가는 영상이라 나중에는 재현이 안 되기 때문이다.
+  function captureScreenshot() {
+    const video = videoRef.current;
+    if (!video || video.videoWidth === 0) {
+      recordEvent("화면 캡처 실패 - 비디오 프레임이 아직 없음");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${device.name}-${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      recordEvent(`화면 캡처 저장됨 (${canvas.width}x${canvas.height})`);
+    }, "image/png");
+  }
+
   return (
     <div className="remote-view">
       <div className="remote-toolbar">
@@ -190,6 +217,9 @@ export function RemoteView({ device, wsToken, isGuest, onClose }: Props) {
         {isGuest && <span className="badge">게스트 세션</span>}
         <MonitorSelector monitors={monitors} selected={selectedMonitor} onSelect={handleSelectMonitor} />
         <span className="status">{status}</span>
+        <button className="link" onClick={captureScreenshot}>
+          화면 캡처
+        </button>
         <DiagnosticButton />
         <button onClick={onClose}>연결 종료</button>
       </div>
