@@ -6,8 +6,11 @@
 """
 
 import json
+import logging
 
 import pyperclip
+
+logger = logging.getLogger(__name__)
 
 
 def is_clipboard_message(event: dict) -> bool:
@@ -20,9 +23,9 @@ def handle_control(event: dict, channel) -> None:
     if kind == "clipboard-set":
         text = event.get("text", "")
         pyperclip.copy(text)
-        print(f"[클립보드] 원격에서 받은 텍스트를 붙여넣었습니다 ({len(text)}자)")
+        logger.info("[클립보드] 원격에서 받은 텍스트를 붙여넣었습니다 (%d자)", len(text))
 
     elif kind == "clipboard-get":
         text = pyperclip.paste()
         channel.send(json.dumps({"type": "clipboard-set", "text": text}))
-        print(f"[클립보드] 현재 클립보드 텍스트를 전송했습니다 ({len(text)}자)")
+        logger.info("[클립보드] 현재 클립보드 텍스트를 전송했습니다 (%d자)", len(text))

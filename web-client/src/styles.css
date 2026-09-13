@@ -370,3 +370,55 @@ button.link.danger {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.diagnostic-trigger {
+  background: none;
+  border: none;
+  color: var(--ink-muted);
+  text-decoration: underline;
+  font-size: 12.5px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.remote-toolbar .diagnostic-trigger {
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.diagnostic-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.diagnostic-modal {
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 18px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.diagnostic-modal textarea {
+  flex: 1;
+  min-height: 220px;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  resize: vertical;
+}

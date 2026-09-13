@@ -113,6 +113,23 @@ Android 앱 / 웹 브라우저  --(HTTPS/WSS 시그널링)-->  자체 VPS(서버
   aiortc가 이미 의존하는 PyAV를 재사용해 화면을 두 번 캡처하지 않는다.
   `--no-record`로 끌 수 있다.
 
+## 운영 지원 - 버그 리포팅 체계
+
+실제 PC/모바일 실기 테스트를 앞두고, 비개발자인 사용자가 문제 상황을 쉽게 전달할 수
+있도록 추가했다:
+
+- **host-agent**: `logging_setup.py` - 콘솔 출력을 `agent.log`(2MB x 3개 순환)에도
+  동일하게 기록. `sys.excepthook`으로 처리되지 않은 예외까지 파일에 남긴다.
+- **server**: `src/logging.js` - `console.log/warn/error`를 가로채 `DATA_DIR/server.log`에
+  동일하게 기록. `uncaughtException`/`unhandledRejection` 핸들러 추가.
+- **web-client**: `diagnostics.ts` + `DiagnosticButton` - 전역 JS 오류/처리되지 않은
+  Promise 거부를 자동 기록하고, WebRTC 연결 상태 변화(RemoteView)도 함께 남긴다.
+  로그인 화면을 포함해 앱 어디서나 "문제가 있었나요? 진단 정보 보기" 버튼으로
+  텍스트를 복사할 수 있다 (서버로 전송하지 않고 브라우저 안에만 보관).
+
+모두 실제로 로그 파일 생성/예외 기록/브라우저 진단 리포트 내용까지 헤드리스 브라우저로
+검증했다 (`README.md`의 "버그가 생겼을 때" 섹션에 사용자용 안내 있음).
+
 ## 보류 항목 (백로그)
 
 - **원격으로 PC 전원 켜기 (Wake-on-LAN)**: 대상 PC가 완전히 꺼져 있으면 `host-agent`도

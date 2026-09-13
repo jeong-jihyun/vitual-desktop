@@ -4,6 +4,8 @@ import { FileTransferChannel, type SharedFile } from "../fileTransfer";
 import { FileTransferPanel } from "./FileTransferPanel";
 import { ClipboardControls } from "./ClipboardControls";
 import { MonitorSelector, type MonitorInfo } from "./MonitorSelector";
+import { DiagnosticButton } from "./DiagnosticButton";
+import { recordEvent } from "../diagnostics";
 
 interface Props {
   device: Device;
@@ -38,9 +40,18 @@ export function RemoteView({ device, wsToken, isGuest, onClose }: Props) {
     const ws = new WebSocket(`${proto}://${location.host}/ws/client?token=${wsToken}&deviceId=${device.id}`);
     wsRef.current = ws;
 
-    ws.onopen = () => setStatus("세션 시작 대기 중...");
-    ws.onclose = () => {
+    recordEvent(`RemoteView 시작 - device=${device.name}(${device.id}) guest=${isGuest}`);
+
+    ws.onopen = () => {
+      setStatus("세션 시작 대기 중...");
+      recordEvent("시그널링 WebSocket 연결됨");
+    };
+    ws.onclose = (e) => {
+      recordEvent(`시그널링 WebSocket 종료 (code=${e.code}, reason=${e.reason || "없음"})`);
       if (!closed) setStatus("연결이 종료되었습니다.");
+    };
+    ws.onerror = () => {
+      recordEvent("시그널링 WebSocket 오류 발생");
     };
 
     ws.onmessage = async (evt) => {
@@ -70,7 +81,13 @@ export function RemoteView({ device, wsToken, isGuest, onClose }: Props) {
             );
           }
         };
-        pc.onconnectionstatechange = () => setStatus(`연결 상태: ${pc.connectionState}`);
+        pc.onconnectionstatechange = () => {
+          setStatus(`연결 상태: ${pc.connectionState}`);
+          recordEvent(`WebRTC 연결 상태 변경: ${pc.connectionState}`);
+        };
+        pc.oniceconnectionstatechange = () => {
+          recordEvent(`ICE 연결 상태 변경: ${pc.iceConnectionState}`);
+        };
 
         const channel = pc.createDataChannel("input");
         channel.binaryType = "arraybuffer";
@@ -173,6 +190,7 @@ export function RemoteView({ device, wsToken, isGuest, onClose }: Props) {
         {isGuest && <span className="badge">게스트 세션</span>}
         <MonitorSelector monitors={monitors} selected={selectedMonitor} onSelect={handleSelectMonitor} />
         <span className="status">{status}</span>
+        <DiagnosticButton />
         <button onClick={onClose}>연결 종료</button>
       </div>
       <div className="remote-stage">

@@ -5,11 +5,14 @@ aiortc가 이미 의존하는 PyAV(av 패키지)를 그대로 재사용해 별�
 만든 프레임(yuv420p)을 그대로 넘겨받아 인코딩하므로 화면을 두 번 캡처하지 않는다.
 """
 
+import logging
 import os
 import time
 from fractions import Fraction
 
 import av
+
+logger = logging.getLogger(__name__)
 
 RECORDINGS_DIR = os.environ.get("DESKCONTROL_RECORDINGS_DIR", "recordings")
 
@@ -42,22 +45,26 @@ class SessionRecorder:
         self._time_base = self._stream.codec_context.time_base
         self._frame_count = 0
 
-        print(f"[세션 녹화 시작] {path}")
+        logger.info("[세션 녹화 시작] %s", path)
         return path
 
     def write_frame(self, frame) -> None:
         if not self._container:
             return
-        # 스트리밍용 프레임은 WebRTC 자체 타임스탬프(pts/time_base)를 갖고 있어
-        # 그대로 이 파일의 컨테이너에 먹싱하면 안 된다 - 녹화 파일 전용으로
-        # 프레임 순번 기반의 새 pts를 매긴다.
-        recording_frame = frame.reformat(format="yuv420p")
-        recording_frame.pts = self._frame_count
-        recording_frame.time_base = self._time_base
+        try:
+            # 스트리밍용 프레임은 WebRTC 자체 타임스탬프(pts/time_base)를 갖고 있어
+            # 그대로 이 파일의 컨테이너에 먹싱하면 안 된다 - 녹화 파일 전용으로
+            # 프레임 순번 기반의 새 pts를 매긴다.
+            recording_frame = frame.reformat(format="yuv420p")
+            recording_frame.pts = self._frame_count
+            recording_frame.time_base = self._time_base
 
-        for packet in self._stream.encode(recording_frame):
-            self._container.mux(packet)
-        self._frame_count += 1
+            for packet in self._stream.encode(recording_frame):
+                self._container.mux(packet)
+            self._frame_count += 1
+        except Exception:
+            # 녹화 실패로 화면 스트리밍 자체(세션)까지 끊기면 안 되므로 여기서 막는다.
+            logger.exception("녹화 프레임 인코딩 중 오류 발생 - 이번 프레임은 건너뜀")
 
     def stop(self) -> None:
         if not self._container:
@@ -65,7 +72,7 @@ class SessionRecorder:
         for packet in self._stream.encode(None):  # 인코더에 남은 프레임 flush
             self._container.mux(packet)
         self._container.close()
-        print(f"[세션 녹화 종료] 총 {self._frame_count} 프레임")
+        logger.info("[세션 녹화 종료] 총 %d 프레임", self._frame_count)
         self._container = None
         self._stream = None
         self._frame_count = 0

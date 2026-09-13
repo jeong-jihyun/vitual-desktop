@@ -12,6 +12,7 @@
 import argparse
 import asyncio
 import json
+import logging
 import time
 
 import mss
@@ -24,8 +25,11 @@ import clipboard_sync
 from config import load_config, save_config
 from file_transfer import FileTransferManager
 from input_control import apply_input_event
+from logging_setup import setup_logging
 from screen_track import ScreenCaptureTrack, list_monitors
 from session_recorder import SessionRecorder
+
+logger = logging.getLogger(__name__)
 
 
 def get_screen_size() -> tuple[int, int]:
@@ -39,11 +43,13 @@ def ensure_paired(server_http: str) -> dict:
     if cfg.get("deviceId") and cfg.get("deviceToken"):
         return cfg
 
-    print("등록된 기기 정보가 없습니다. 페어링을 시작합니다...")
+    logger.info("등록된 기기 정보가 없습니다. 페어링을 시작합니다...")
     resp = requests.post(f"{server_http}/api/devices/pair/start", timeout=10)
     resp.raise_for_status()
     data = resp.json()
 
+    # 페어링 코드는 화면에서 바로 눈에 띄어야 하므로 로그 포맷 없이 그대로 출력하고,
+    # 발급 사실 자체는 agent.log에도 남긴다.
     print()
     print("=" * 44)
     print(f"  웹 화면에서 아래 코드를 입력해 이 PC를 등록하세요")
@@ -51,6 +57,7 @@ def ensure_paired(server_http: str) -> dict:
     print(f"  (유효시간 {data['expiresInSeconds']}초)")
     print("=" * 44)
     print()
+    logger.info("페어링 코드 발급됨 (tempId=%s)", data["tempId"])
 
     deadline = time.time() + data["expiresInSeconds"]
     status_url = f"{server_http}/api/devices/pair/status/{data['tempId']}"
@@ -61,7 +68,7 @@ def ensure_paired(server_http: str) -> dict:
         if status.get("status") == "claimed":
             cfg = {"deviceId": status["deviceId"], "deviceToken": status["deviceToken"]}
             save_config(cfg)
-            print("페어링이 완료되었습니다. 에이전트를 계속 실행합니다.\n")
+            logger.info("페어링이 완료되었습니다. 에이전트를 계속 실행합니다.")
             return cfg
 
     raise TimeoutError("페어링 코드가 만료되었습니다. 에이전트를 다시 시작해주세요.")
@@ -111,8 +118,8 @@ def create_session(ws, session_id: str, screen_size: tuple[int, int], enable_rec
                     screen_track.set_monitor(int(event.get("index", 1)))
                 else:
                     apply_input_event(event, screen_size)
-            except Exception as exc:  # noqa: BLE001 - 입력/제어 처리는 최대한 죽지 않아야 함
-                print(f"[메시지 처리 오류] {exc}")
+            except Exception:  # noqa: BLE001 - 입력/제어 처리는 최대한 죽지 않아야 함
+                logger.exception("메시지 처리 중 오류 발생")
 
     @pc.on("icecandidate")
     async def on_icecandidate(candidate):
@@ -127,7 +134,7 @@ def create_session(ws, session_id: str, screen_size: tuple[int, int], enable_rec
 
     @pc.on("connectionstatechange")
     async def on_state_change():
-        print(f"[세션 {session_id[:8]}] 연결 상태: {pc.connectionState}")
+        logger.info("[세션 %s] 연결 상태: %s", session_id[:8], pc.connectionState)
 
     return Session(pc, screen_track, recorder)
 
@@ -140,9 +147,9 @@ async def run_agent(server_http: str, server_ws: str, enable_recording: bool) ->
     sessions: dict[str, Session] = {}
 
     async with websockets.connect(ws_url) as ws:
-        print(f"시그널링 서버에 연결되었습니다 ({server_ws}). 접속 대기 중...")
+        logger.info("시그널링 서버에 연결되었습니다 (%s). 접속 대기 중...", server_ws)
         if enable_recording:
-            print("세션 녹화가 켜져 있습니다 (recordings/ 폴더에 저장). --no-record로 끌 수 있습니다.")
+            logger.info("세션 녹화가 켜져 있습니다 (recordings/ 폴더에 저장). --no-record로 끌 수 있습니다.")
 
         async for raw in ws:
             msg = json.loads(raw)
@@ -150,7 +157,7 @@ async def run_agent(server_http: str, server_ws: str, enable_recording: bool) ->
             session_id = msg.get("sessionId")
 
             if mtype == "session-start":
-                print(f"[세션 {session_id[:8]}] 새 접속 요청")
+                logger.info("[세션 %s] 새 접속 요청", session_id[:8])
                 sessions[session_id] = create_session(ws, session_id, screen_size, enable_recording)
 
             elif mtype == "offer":
@@ -181,20 +188,30 @@ async def run_agent(server_http: str, server_ws: str, enable_recording: bool) ->
                     if session.recorder:
                         session.recorder.stop()
                     await session.pc.close()
-                    print(f"[세션 {session_id[:8]}] 종료")
+                    logger.info("[세션 %s] 종료", session_id[:8])
 
 
 def main() -> None:
+    setup_logging()
+
     parser = argparse.ArgumentParser(description="가상PC 원격제어 - Windows 호스트 에이전트")
     parser.add_argument("--http", default="http://localhost:8080", help="시그널링 서버 HTTP 주소")
     parser.add_argument("--ws", default="ws://localhost:8080", help="시그널링 서버 WebSocket 주소")
     parser.add_argument("--no-record", action="store_true", help="세션 녹화를 끈다 (기본은 켜짐)")
     args = parser.parse_args()
 
+    logger.info("에이전트 시작 (http=%s, ws=%s)", args.http, args.ws)
+
     try:
         asyncio.run(run_agent(args.http, args.ws, enable_recording=not args.no_record))
     except KeyboardInterrupt:
-        print("\n에이전트를 종료합니다.")
+        logger.info("에이전트를 종료합니다.")
+    except Exception:
+        logger.exception(
+            "예상치 못한 오류로 에이전트가 종료되었습니다. "
+            "이 폴더의 agent.log 파일 내용을 복사해서 알려주세요."
+        )
+        raise
 
 
 if __name__ == "__main__":

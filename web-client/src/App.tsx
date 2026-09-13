@@ -7,6 +7,7 @@ import { DeviceList } from "./components/DeviceList";
 import { PairDevice } from "./components/PairDevice";
 import { RemoteView } from "./components/RemoteView";
 import { AuditLog } from "./components/AuditLog";
+import { DiagnosticButton } from "./components/DiagnosticButton";
 
 export default function App() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("deskcontrol-token"));
@@ -54,6 +55,7 @@ export default function App() {
         <LoginForm onAuthenticated={setToken} />
         <div className="divider">또는</div>
         <GuestAccess onConnected={(t, deviceId) => setGuestSession({ token: t, deviceId })} />
+        <DiagnosticButton />
       </div>
     );
   }
@@ -86,6 +88,7 @@ export default function App() {
       </section>
       <PairDevice token={token} onPaired={() => refreshDevices(token)} />
       <AuditLog token={token} />
+      <DiagnosticButton />
     </div>
   );
 }

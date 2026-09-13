@@ -5,6 +5,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { setupFileLogging } from "./logging.js";
 import { db } from "./db.js";
 import { hashPassword } from "./auth.js";
 import { isTotpEnabled } from "./totp.js";
@@ -13,6 +14,8 @@ import { devicesRouter } from "./routes/devices.js";
 import { sessionsRouter } from "./routes/sessions.js";
 import { auditRouter } from "./routes/audit.js";
 import { attachSignaling } from "./ws/signaling.js";
+
+setupFileLogging();
 
 // 회원가입 화면 없이, 서버에 미리 설정한 접속 비밀번호로 로그인한다.
 // 최초 실행 시에만 OWNER_PASSWORD를 읽어 등록하고, 이후에는 db.json에

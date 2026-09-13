@@ -53,6 +53,11 @@ node scripts/generate-totp-secret.js
 별도 DB 엔진 없이 `DATA_DIR/db.json` 단일 파일에 저장한다 (개인용 PC 3~5대 규모 기준).
 운영 배포 시 이 디렉터리를 백업 대상에 포함할 것.
 
+## 문제가 생겼을 때
+
+`DATA_DIR/server.log`(기본 `data/server.log`)에 콘솔 출력이 그대로 남는다.
+터미널 창을 닫아버렸어도 이 파일을 열어서 알려주면 된다.
+
 ## 배포 시 주의
 
 - HTTPS/WSS 뒤에 반드시 배치할 것 (Nginx/Caddy 리버스 프록시 권장) - 그렇지 않으면

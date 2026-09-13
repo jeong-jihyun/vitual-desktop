@@ -23,7 +23,10 @@
 """
 
 import json
+import logging
 import os
+
+logger = logging.getLogger(__name__)
 
 RECEIVED_DIR = os.environ.get("DESKCONTROL_RECEIVED_DIR", "received_files")
 SHARED_DIR = os.environ.get("DESKCONTROL_SHARED_DIR", "shared_files")
@@ -56,12 +59,12 @@ class FileTransferManager:
             path = os.path.join(self._received_dir, name)
             self._upload_file = open(path, "wb")
             self._upload_received_size = 0
-            print(f"[파일 수신 시작] {name} (예상 {event.get('size', '?')} bytes)")
+            logger.info("[파일 수신 시작] %s (예상 %s bytes)", name, event.get("size", "?"))
 
         elif kind == "file-upload-end":
             if self._upload_file:
                 self._upload_file.close()
-                print(f"[파일 수신 완료] {self._upload_received_size} bytes 저장됨")
+                logger.info("[파일 수신 완료] %s bytes 저장됨", self._upload_received_size)
             self._upload_file = None
             self._upload_received_size = 0
 
@@ -93,7 +96,7 @@ class FileTransferManager:
                         break
                     channel.send(chunk)
             channel.send(json.dumps({"type": "file-download-end", "name": name}))
-            print(f"[파일 송신 완료] {name} ({size} bytes)")
+            logger.info("[파일 송신 완료] %s (%s bytes)", name, size)
 
     def handle_binary_chunk(self, chunk: bytes) -> None:
         if self._upload_file:
