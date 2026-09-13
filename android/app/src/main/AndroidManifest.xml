@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.DeskControl"
+        android:usesCleartextTraffic="true">
+        <!-- usesCleartextTraffic: 집 와이파이 내부(http://사설IP:8080) 접속 지원용.
+             오라클 클라우드 등 인터넷에 노출할 때는 반드시 HTTPS/WSS 서버 주소를 사용할 것
+             (server/README.md 배포 시 주의 참고). -->
+
+        <activity
+            android:name=".LoginActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".DeviceListActivity" android:exported="false" />
+
+        <activity
+            android:name=".RemoteControlActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:windowSoftInputMode="adjustResize" />
+
+    </application>
+</manifest>

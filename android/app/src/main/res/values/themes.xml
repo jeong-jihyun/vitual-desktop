@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.DeskControl" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/deskcontrol_accent</item>
+        <item name="colorPrimaryDark">@color/deskcontrol_accent</item>
+        <item name="colorAccent">@color/deskcontrol_accent</item>
+        <item name="android:windowBackground">@color/deskcontrol_bg</item>
+    </style>
+</resources>

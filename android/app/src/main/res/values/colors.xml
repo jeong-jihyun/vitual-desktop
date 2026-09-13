@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="deskcontrol_bg">#F4F2EC</color>
+    <color name="deskcontrol_surface">#FFFFFF</color>
+    <color name="deskcontrol_ink">#1B2430</color>
+    <color name="deskcontrol_ink_muted">#5C6472</color>
+    <color name="deskcontrol_border">#DAD4C6</color>
+    <color name="deskcontrol_accent">#0F7A6C</color>
+    <color name="deskcontrol_danger">#B0453A</color>
+</resources>

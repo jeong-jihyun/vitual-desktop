@@ -13,7 +13,7 @@ Android/웹으로 개인 소유 Windows PC를 원격제어하는 도구. 회원�
 | [`server/`](server) | 인증·페어링·WebRTC 시그널링 서버 (Node.js) | Phase 1 구현 완료 |
 | [`host-agent/`](host-agent) | Windows 호스트 에이전트 (Python, 화면 캡처/입력 주입) | Phase 1 구현 완료 |
 | [`web-client/`](web-client) | 웹 뷰어 (React) | Phase 1 구현 완료 |
-| [`android/`](android) | Android 네이티브 앱 | Phase 3 예정 (미착수) |
+| [`android/`](android) | Android 네이티브 앱 | Phase 3 구현 완료, 빌드 미검증(Android Studio 필요) |
 
 ## 빠른 시작 (집 와이파이 안에서 테스트)
 
@@ -59,6 +59,12 @@ Android/웹으로 개인 소유 Windows PC를 원격제어하는 도구. 회원�
   집 밖에서도 접속 가능하게 함. 코드는 이미 `PORT`/`JWT_SECRET`/`OWNER_PASSWORD`를 환경변수로
   받고, 웹 화면도 같은 포트에서 서빙하도록 되어 있어 별도 코드 수정 없이 그대로 옮길 수 있다.
   실제 배포 가이드(Ubuntu 설정, HTTPS 인증서 등)는 이 옵션을 실제로 진행할 때 작성한다.
+
+## Android 앱
+
+`android/`에 웹 클라이언트와 동일한 프로토콜을 쓰는 Kotlin 앱 소스를 작성해뒀다.
+단, 이 코드는 Android SDK가 없는 환경에서 작성되어 **실제 빌드 확인을 못했다** -
+Android Studio에서 열어 Gradle Sync/빌드부터 해볼 것 (`android/README.md` 참고).
 
 ## 인증 모델
 
