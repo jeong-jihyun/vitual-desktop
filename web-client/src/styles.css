@@ -1,0 +1,204 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f4f2ec;
+  --surface: #ffffff;
+  --ink: #1b2430;
+  --ink-muted: #5c6472;
+  --border: #dad4c6;
+  --accent: #0f7a6c;
+  --danger: #b0453a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161c;
+    --surface: #191f27;
+    --ink: #e7e4dc;
+    --ink-muted: #99a2af;
+    --border: #2b323d;
+    --accent: #4fc3ae;
+    --danger: #e08579;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+}
+
+.app-shell {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.app-shell header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+h1 {
+  font-size: 22px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+
+input {
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+button {
+  font: inherit;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.link {
+  background: none;
+  border: none;
+  color: var(--ink-muted);
+  text-decoration: underline;
+  padding: 0;
+}
+
+button.link.danger {
+  color: var(--danger);
+}
+
+.hint {
+  font-size: 13.5px;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.divider {
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 12.5px;
+}
+
+.device-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.device-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ink-muted);
+}
+
+.status-dot.online {
+  background: var(--accent);
+}
+
+.device-name {
+  font-weight: 600;
+  flex: 1;
+}
+
+.device-status {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.remote-view {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+}
+
+.remote-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--surface);
+  color: var(--ink);
+  border-bottom: 1px solid var(--border);
+}
+
+.remote-toolbar .status {
+  flex: 1;
+  text-align: right;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.badge {
+  font-size: 11.5px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+
+.remote-view video {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  outline: none;
+  cursor: default;
+}
