@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState, type MouseEvent, type WheelEvent, type KeyboardEvent } from "react";
 import type { Device } from "../types";
+import { FileTransferChannel, type SharedFile } from "../fileTransfer";
+import { FileTransferPanel } from "./FileTransferPanel";
+import { ClipboardControls } from "./ClipboardControls";
+import { MonitorSelector, type MonitorInfo } from "./MonitorSelector";
 
 interface Props {
   device: Device;
@@ -18,7 +22,15 @@ export function RemoteView({ device, wsToken, isGuest, onClose }: Props) {
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const channelRef = useRef<RTCDataChannel | null>(null);
+  const fileTransferRef = useRef<FileTransferChannel | null>(null);
   const [status, setStatus] = useState("연결 중...");
+
+  const [fileTransferReady, setFileTransferReady] = useState(false);
+  const [sharedFiles, setSharedFiles] = useState<SharedFile[]>([]);
+  const [fileTransferError, setFileTransferError] = useState<string | null>(null);
+  const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
+  const [selectedMonitor, setSelectedMonitor] = useState(1);
+  const [receivedClipboard, setReceivedClipboard] = useState<string | null>(null);
 
   useEffect(() => {
     let closed = false;
@@ -60,7 +72,48 @@ export function RemoteView({ device, wsToken, isGuest, onClose }: Props) {
         };
         pc.onconnectionstatechange = () => setStatus(`연결 상태: ${pc.connectionState}`);
 
-        channelRef.current = pc.createDataChannel("input");
+        const channel = pc.createDataChannel("input");
+        channel.binaryType = "arraybuffer";
+        channelRef.current = channel;
+
+        const fileTransfer = new FileTransferChannel(channel);
+        fileTransfer.onFileList = setSharedFiles;
+        fileTransfer.onDownloadError = setFileTransferError;
+        fileTransfer.onDownloadComplete = (name, blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = name;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+        fileTransferRef.current = fileTransfer;
+
+        // input 채널 하나로 입력/파일/클립보드/모니터 메시지를 모두 주고받는다.
+        // host-agent/agent.py 의 on_message 라우팅과 1:1로 대응.
+        channel.onopen = () => setFileTransferReady(true);
+        channel.onmessage = (e) => {
+          if (typeof e.data === "string") {
+            let parsed: { type?: string; [key: string]: unknown };
+            try {
+              parsed = JSON.parse(e.data);
+            } catch {
+              return;
+            }
+            if (fileTransfer.handleTextMessage(parsed)) return;
+
+            if (parsed.type === "clipboard-set") {
+              setReceivedClipboard((parsed.text as string) ?? "");
+            } else if (parsed.type === "monitor-list") {
+              const list = (parsed.monitors as MonitorInfo[]) ?? [];
+              setMonitors(list);
+              if (list.length > 0) setSelectedMonitor(list[0].index);
+            }
+          } else {
+            fileTransfer.handleBinaryMessage(e.data as ArrayBuffer);
+          }
+        };
+
         pc.addTransceiver("video", { direction: "recvonly" });
 
         const offer = await pc.createOffer();
@@ -108,34 +161,58 @@ export function RemoteView({ device, wsToken, isGuest, onClose }: Props) {
     });
   }
 
+  function handleSelectMonitor(index: number) {
+    setSelectedMonitor(index);
+    sendInput({ type: "select-monitor", index });
+  }
+
   return (
     <div className="remote-view">
       <div className="remote-toolbar">
         <span className="device-name">{device.name}</span>
         {isGuest && <span className="badge">게스트 세션</span>}
+        <MonitorSelector monitors={monitors} selected={selectedMonitor} onSelect={handleSelectMonitor} />
         <span className="status">{status}</span>
         <button onClick={onClose}>연결 종료</button>
       </div>
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        tabIndex={0}
-        onMouseMove={handleMouseMove}
-        onMouseDown={(e) => sendInput({ type: "mousedown", button: e.button })}
-        onMouseUp={(e) => sendInput({ type: "mouseup", button: e.button })}
-        onWheel={(e: WheelEvent<HTMLVideoElement>) => sendInput({ type: "wheel", deltaY: e.deltaY })}
-        onContextMenu={(e) => e.preventDefault()}
-        onKeyDown={(e: KeyboardEvent<HTMLVideoElement>) => {
-          e.preventDefault();
-          sendInput({ type: "keydown", code: e.code, key: e.key });
-        }}
-        onKeyUp={(e: KeyboardEvent<HTMLVideoElement>) => {
-          e.preventDefault();
-          sendInput({ type: "keyup", code: e.code, key: e.key });
-        }}
-      />
+      <div className="remote-stage">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          tabIndex={0}
+          onMouseMove={handleMouseMove}
+          onMouseDown={(e) => sendInput({ type: "mousedown", button: e.button })}
+          onMouseUp={(e) => sendInput({ type: "mouseup", button: e.button })}
+          onWheel={(e: WheelEvent<HTMLVideoElement>) => sendInput({ type: "wheel", deltaY: e.deltaY })}
+          onContextMenu={(e) => e.preventDefault()}
+          onKeyDown={(e: KeyboardEvent<HTMLVideoElement>) => {
+            e.preventDefault();
+            sendInput({ type: "keydown", code: e.code, key: e.key });
+          }}
+          onKeyUp={(e: KeyboardEvent<HTMLVideoElement>) => {
+            e.preventDefault();
+            sendInput({ type: "keyup", code: e.code, key: e.key });
+          }}
+        />
+
+        {fileTransferReady && (
+          <div className="side-panels">
+            <FileTransferPanel
+              transfer={fileTransferRef.current}
+              files={sharedFiles}
+              onRefresh={() => fileTransferRef.current?.requestFileList()}
+              externalError={fileTransferError}
+            />
+            <ClipboardControls
+              onSend={(text) => sendInput({ type: "clipboard-set", text })}
+              onRequest={() => sendInput({ type: "clipboard-get" })}
+              receivedText={receivedClipboard}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

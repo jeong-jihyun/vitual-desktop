@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+venv/
+device_config.json
+received_files/
+shared_files/
+recordings/

@@ -39,8 +39,22 @@ python generate_guest_pin.py --http http://<서버주소>:8080
 작업 스케줄러에서 "로그온 시" 트리거로 `python agent.py`를 실행하도록 등록하면
 PC 재부팅 후에도 자동으로 원격제어 대상이 된다.
 
+## 부가 기능 (Phase 4)
+
+- **파일 공유**: 클라이언트가 업로드한 파일은 `received_files/`에 저장된다.
+  `shared_files/` 폴더에 파일을 넣어두면 클라이언트가 목록을 보고 다운로드할 수 있다
+  (둘 다 최초 실행 시 자동 생성). 경로는 `DESKCONTROL_RECEIVED_DIR`,
+  `DESKCONTROL_SHARED_DIR` 환경변수로 바꿀 수 있다.
+- **클립보드 동기화**: `pyperclip` 사용. Windows는 별도 설치 없이 동작한다.
+- **다중 모니터**: 연결 시 클라이언트에 모니터 목록을 자동으로 알려주고,
+  클라이언트가 화면에서 모니터를 선택하면 그 모니터로 캡처 대상을 바꾼다.
+- **세션 녹화**: 접속 세션마다 `recordings/`에 mp4로 저장한다 (기본 켜짐).
+  끄려면 `python agent.py --no-record`.
+
 ## 참고
 
-- 화면 캡처: `mss` (다중 모니터의 경우 `screen_track.py`의 `monitor_index` 조정)
+- 화면 캡처: `mss` (다중 모니터 지원, `screen_track.py`)
 - WebRTC: `aiortc`
 - 입력 주입: `pynput` (키 매핑은 `input_control.py` 참고)
+- 세션 녹화: `av` (PyAV, aiortc가 이미 의존하는 라이브러리를 재사용)
+- 클립보드: `pyperclip`
