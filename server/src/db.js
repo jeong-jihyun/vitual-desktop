@@ -9,7 +9,7 @@ const DATA_DIR = process.env.DATA_DIR || "./data";
 const DB_FILE = path.join(DATA_DIR, "db.json");
 
 function emptyState() {
-  return { users: [], devices: [], pairings: [], pins: [] };
+  return { users: [], devices: [], pairings: [], pins: [], auditLog: [] };
 }
 
 function load() {

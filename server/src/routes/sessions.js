@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { db } from "../db.js";
 import { requireDevice } from "../middleware.js";
 import { signGuestToken } from "../auth.js";
+import { logEvent } from "../audit.js";
 
 export const sessionsRouter = Router();
 const PIN_TTL_MS = Number(process.env.PIN_TTL_SECONDS || 300) * 1000;
@@ -21,6 +22,7 @@ sessionsRouter.post("/pin/create", requireDevice, (req, res) => {
   db.state.pins.push({ code, deviceId: req.deviceId, expiresAt: now + PIN_TTL_MS, used: false });
   db.save();
 
+  logEvent("guest_pin_created", { deviceId: req.deviceId }, req);
   res.status(201).json({ code, expiresInSeconds: PIN_TTL_MS / 1000 });
 });
 
@@ -36,5 +38,6 @@ sessionsRouter.post("/pin/redeem", (req, res) => {
   p.used = true;
   db.save();
 
+  logEvent("guest_pin_redeemed", { deviceId: p.deviceId }, req);
   res.json({ guestToken: signGuestToken(p.deviceId), deviceId: p.deviceId });
 });

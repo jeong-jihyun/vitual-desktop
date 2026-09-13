@@ -7,9 +7,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { db } from "./db.js";
 import { hashPassword } from "./auth.js";
+import { isTotpEnabled } from "./totp.js";
 import { authRouter } from "./routes/auth.js";
 import { devicesRouter } from "./routes/devices.js";
 import { sessionsRouter } from "./routes/sessions.js";
+import { auditRouter } from "./routes/audit.js";
 import { attachSignaling } from "./ws/signaling.js";
 
 // 회원가입 화면 없이, 서버에 미리 설정한 접속 비밀번호로 로그인한다.
@@ -41,6 +43,7 @@ app.use(express.json());
 app.use("/api/auth", authRouter);
 app.use("/api/devices", devicesRouter);
 app.use("/api/sessions", sessionsRouter);
+app.use("/api/audit", auditRouter);
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
@@ -75,4 +78,5 @@ attachSignaling(server);
 const port = process.env.PORT || 8080;
 server.listen(port, () => {
   console.log(`시그널링 서버 실행 중: http://localhost:${port} (같은 네트워크의 다른 기기에서는 이 PC의 IP로 접속)`);
+  console.log(`2단계 인증(TOTP): ${isTotpEnabled() ? "사용 중" : "꺼져 있음 (scripts/generate-totp-secret.js로 켤 수 있음)"}`);
 });

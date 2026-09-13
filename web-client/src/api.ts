@@ -2,6 +2,14 @@ import type { Device } from "./types";
 
 const API_BASE = "/api";
 
+export class ApiError extends Error {
+  requireTotp: boolean;
+  constructor(message: string, requireTotp = false) {
+    super(message);
+    this.requireTotp = requireTotp;
+  }
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -15,17 +23,25 @@ async function request<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `요청 실패 (${res.status})`);
+    throw new ApiError(body.error || `요청 실패 (${res.status})`, Boolean(body.requireTotp));
   }
   if (res.status === 204) return undefined as T;
   return res.json();
 }
 
+export interface AuditEntry {
+  id: string;
+  event: string;
+  detail: Record<string, unknown> | null;
+  ip: string | null;
+  at: string;
+}
+
 export const api = {
-  login: (password: string) =>
+  login: (password: string, totp?: string) =>
     request<{ token: string }>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ password }),
+      body: JSON.stringify(totp ? { password, totp } : { password }),
     }),
 
   listDevices: (token: string) => request<{ devices: Device[] }>("/devices", {}, token),
@@ -45,4 +61,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ code }),
     }),
+
+  listAudit: (token: string, limit = 50) =>
+    request<{ entries: AuditEntry[] }>(`/audit?limit=${limit}`, {}, token),
 };

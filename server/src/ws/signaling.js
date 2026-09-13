@@ -2,6 +2,7 @@ import { WebSocketServer } from "ws";
 import crypto from "node:crypto";
 import { verifyToken } from "../auth.js";
 import { db } from "../db.js";
+import { logEvent } from "../audit.js";
 
 // 서버는 시그널링(SDP/ICE 교환)만 중계하고, 실제 화면/입력 데이터는
 // 클라이언트 <-> 에이전트 간 WebRTC(P2P 우선, 실패 시 TURN)로 직접 오간다.
@@ -18,18 +19,18 @@ export function attachSignaling(server) {
 
     if (url.pathname === "/ws/agent") {
       agentWss.handleUpgrade(req, socket, head, (ws) =>
-        agentWss.emit("connection", ws, url.searchParams)
+        agentWss.emit("connection", ws, req, url.searchParams)
       );
     } else if (url.pathname === "/ws/client") {
       clientWss.handleUpgrade(req, socket, head, (ws) =>
-        clientWss.emit("connection", ws, url.searchParams)
+        clientWss.emit("connection", ws, req, url.searchParams)
       );
     } else {
       socket.destroy();
     }
   });
 
-  agentWss.on("connection", (ws, params) => {
+  agentWss.on("connection", (ws, req, params) => {
     let payload;
     try {
       payload = verifyToken(params.get("token") || "");
@@ -51,6 +52,7 @@ export function attachSignaling(server) {
     device.lastSeenAt = new Date().toISOString();
     db.save();
     console.log(`[agent] ${device.name} (${deviceId}) 온라인`);
+    logEvent("agent_online", { deviceId, name: device.name }, req);
 
     ws.on("message", (raw) => {
       let msg;
@@ -70,10 +72,11 @@ export function attachSignaling(server) {
       device.lastSeenAt = new Date().toISOString();
       db.save();
       console.log(`[agent] ${device.name} (${deviceId}) 오프라인`);
+      logEvent("agent_offline", { deviceId, name: device.name }, req);
     });
   });
 
-  clientWss.on("connection", (ws, params) => {
+  clientWss.on("connection", (ws, req, params) => {
     const token = params.get("token") || "";
     const deviceId = params.get("deviceId");
     let payload;
@@ -112,6 +115,7 @@ export function attachSignaling(server) {
 
     ws.send(JSON.stringify({ type: "session-ready", sessionId }));
     agentWs.send(JSON.stringify({ type: "session-start", sessionId }));
+    logEvent("session_start", { deviceId, sessionId, via: payload.type }, req);
 
     ws.on("message", (raw) => {
       let msg;

@@ -6,6 +6,7 @@ import { GuestAccess } from "./components/GuestAccess";
 import { DeviceList } from "./components/DeviceList";
 import { PairDevice } from "./components/PairDevice";
 import { RemoteView } from "./components/RemoteView";
+import { AuditLog } from "./components/AuditLog";
 
 export default function App() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("deskcontrol-token"));
@@ -84,6 +85,7 @@ export default function App() {
         />
       </section>
       <PairDevice token={token} onPaired={() => refreshDevices(token)} />
+      <AuditLog token={token} />
     </div>
   );
 }

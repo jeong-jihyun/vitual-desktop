@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { db } from "../db.js";
 import { requireUser } from "../middleware.js";
 import { signDeviceToken } from "../auth.js";
+import { logEvent } from "../audit.js";
 
 export const devicesRouter = Router();
 const PAIR_TTL_MS = Number(process.env.PAIR_TTL_SECONDS || 300) * 1000;
@@ -66,6 +67,7 @@ devicesRouter.post("/pair/claim", requireUser, (req, res) => {
   p.deviceToken = signDeviceToken(device);
   db.save();
 
+  logEvent("device_paired", { deviceId: device.id, name: device.name }, req);
   res.status(201).json({ device });
 });
 
@@ -78,13 +80,13 @@ devicesRouter.get("/", requireUser, (req, res) => {
 });
 
 devicesRouter.delete("/:id", requireUser, (req, res) => {
-  const before = db.state.devices.length;
-  db.state.devices = db.state.devices.filter(
-    (d) => !(d.id === req.params.id && d.userId === req.userId)
-  );
-  if (db.state.devices.length === before) {
+  const target = db.state.devices.find((d) => d.id === req.params.id && d.userId === req.userId);
+  if (!target) {
     return res.status(404).json({ error: "기기를 찾을 수 없습니다." });
   }
+  db.state.devices = db.state.devices.filter((d) => d.id !== target.id);
   db.save();
+
+  logEvent("device_removed", { deviceId: target.id, name: target.name }, req);
   res.status(204).end();
 });

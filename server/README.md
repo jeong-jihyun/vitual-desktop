@@ -20,11 +20,21 @@ npm start
 `web-client/dist`를 같은 포트에서 함께 서빙한다 - 즉 서버 하나만 실행하면 API와
 웹 화면이 모두 뜬다. 빌드 결과물 경로는 `WEB_CLIENT_DIST` 환경변수로 바꿀 수 있다.
 
+## 2단계 인증 (선택)
+
+```bash
+node scripts/generate-totp-secret.js
+# 출력된 TOTP_SECRET을 .env에 넣고 서버 재시작
+```
+
+설정하면 로그인 시 비밀번호 + 인증앱(Google Authenticator 등) 6자리 코드를
+함께 요구한다. 설정하지 않으면 기존처럼 비밀번호만으로 로그인한다.
+
 ## API 개요
 
 | Method | Path | 설명 |
 | --- | --- | --- |
-| POST | `/api/auth/login` | `{ password }` -> 소유자 JWT 발급 |
+| POST | `/api/auth/login` | `{ password, totp? }` -> 소유자 JWT 발급 (2FA 활성 시 totp 필요) |
 | GET | `/api/devices` | 등록된 내 PC 목록 (JWT 필요) |
 | POST | `/api/devices/pair/start` | 호스트 에이전트가 페어링 코드 발급 요청 (인증 불필요) |
 | GET | `/api/devices/pair/status/:tempId` | 에이전트가 소유자의 등록 완료를 폴링 |
@@ -32,8 +42,11 @@ npm start
 | DELETE | `/api/devices/:id` | PC 등록 해제 (JWT 필요) |
 | POST | `/api/sessions/pin/create` | 에이전트가 1회성 게스트 코드 발급 (deviceToken 필요) |
 | POST | `/api/sessions/pin/redeem` | 게스트가 코드로 1회용 접속 토큰 발급 (인증 불필요) |
+| GET | `/api/audit` | 최근 활동 로그 조회 (JWT 필요, `?limit=` 최대 200) |
 | WS | `/ws/agent?token=` | 호스트 에이전트 시그널링 채널 |
 | WS | `/ws/client?token=&deviceId=` | 뷰어(웹/Android) 시그널링 채널 |
+
+로그인은 같은 IP에서 10분 내 5회 실패 시 일시 차단(429)된다.
 
 ## 데이터 저장
 
