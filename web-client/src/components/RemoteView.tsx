@@ -39,7 +39,12 @@ export function RemoteView({ device, wsToken, isGuest, onClose }: Props) {
         pcRef.current = pc;
 
         pc.ontrack = (e) => {
-          if (videoRef.current) videoRef.current.srcObject = e.streams[0];
+          if (videoRef.current) {
+            videoRef.current.srcObject = e.streams[0];
+            // 브라우저 자동재생 정책 대응: muted 비디오라도 play()를 명시적으로 호출해야
+            // 안정적으로 재생이 시작되는 경우가 있다.
+            videoRef.current.play().catch(() => {});
+          }
         };
         pc.onicecandidate = (e) => {
           if (e.candidate) {
@@ -115,6 +120,7 @@ export function RemoteView({ device, wsToken, isGuest, onClose }: Props) {
         ref={videoRef}
         autoPlay
         playsInline
+        muted
         tabIndex={0}
         onMouseMove={handleMouseMove}
         onMouseDown={(e) => sendInput({ type: "mousedown", button: e.button })}
