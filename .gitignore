@@ -3,3 +3,7 @@ dist/
 __pycache__/
 *.pyc
 .env
+
+# 사용자가 보내주는 스크린샷/로그 원본 - 이력은 bug-reports/README.md로 관리하고
+# 개인 화면 캡처·로그 파일 자체는 저장소에 커밋하지 않는다.
+bug-reports/attachments/
