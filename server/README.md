@@ -16,6 +16,10 @@ npm start
 (회원가입 절차 없음). 비밀번호를 바꾸려면 `DATA_DIR/db.json`의 `users` 배열을 비우고
 `.env`의 `OWNER_PASSWORD`를 변경한 뒤 재시작한다.
 
+`web-client`를 미리 빌드해두면(`cd ../web-client && npm run build`) 이 서버가
+`web-client/dist`를 같은 포트에서 함께 서빙한다 - 즉 서버 하나만 실행하면 API와
+웹 화면이 모두 뜬다. 빌드 결과물 경로는 `WEB_CLIENT_DIST` 환경변수로 바꿀 수 있다.
+
 ## API 개요
 
 | Method | Path | 설명 |

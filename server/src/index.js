@@ -2,6 +2,9 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { db } from "./db.js";
 import { hashPassword } from "./auth.js";
 import { authRouter } from "./routes/auth.js";
@@ -41,6 +44,25 @@ app.use("/api/sessions", sessionsRouter);
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+// web-client가 빌드되어 있으면(dist/) 같은 포트에서 함께 서빙한다.
+// 집 와이파이 내부 테스트든, 나중에 클라우드 서버에 배포하든 코드 변경 없이
+// 서버 하나만 실행하면 API+웹 화면이 한 번에 뜨도록 하기 위함이다.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const webClientDist = process.env.WEB_CLIENT_DIST || path.join(__dirname, "../../web-client/dist");
+
+if (fs.existsSync(path.join(webClientDist, "index.html"))) {
+  app.use(express.static(webClientDist));
+  app.get(/^\/(?!api|ws).*/, (req, res) => {
+    res.sendFile(path.join(webClientDist, "index.html"));
+  });
+} else {
+  console.warn(
+    `[안내] ${webClientDist}에 빌드된 웹 클라이언트가 없습니다. ` +
+      "web-client에서 'npm run build'를 실행하면 이 서버가 웹 화면도 함께 서빙합니다 " +
+      "(개발 중에는 'npm run dev'로 별도 실행해도 됩니다)."
+  );
+}
+
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   console.error(err);
@@ -52,5 +74,5 @@ attachSignaling(server);
 
 const port = process.env.PORT || 8080;
 server.listen(port, () => {
-  console.log(`시그널링 서버 실행 중: http://localhost:${port}`);
+  console.log(`시그널링 서버 실행 중: http://localhost:${port} (같은 네트워크의 다른 기기에서는 이 PC의 IP로 접속)`);
 });
