@@ -115,3 +115,13 @@ Android Studio에서 열어 Gradle Sync/빌드부터 해볼 것 (`android/README
 - `.env`의 `JWT_SECRET`, `OWNER_PASSWORD`는 저장소에 커밋하지 말 것 (`.gitignore`에 포함됨).
 - 원격 제어 프로그램은 기술적으로 해킹 도구와 동일한 능력을 가지므로, 접속 비밀번호와
   게스트 코드를 신뢰할 수 있는 경로로만 공유할 것.
+
+## 점검 기록 (2026-10)
+| 항목 | 결과 |
+| --- | --- |
+| 서버 `npm ci` 후 실행 → `/health`, 틀린 비밀번호 401, 올바른 비밀번호로 토큰 발급, 토큰 없는 `/api/devices` 401·있으면 200, 연속 5회 실패 뒤 429(로그인 시도 제한) | 정상 |
+| 웹 클라이언트 `npm ci` + `npm run build` (tsc 포함) | 성공, 빌드 결과가 있으면 서버가 `/`에서 서빙 |
+| 호스트 에이전트 파이썬 9개 파일 컴파일 | 통과 |
+| 서버 JS 전체 문법 검사 | 통과 |
+| 호스트 에이전트 실제 화면 캡처·입력 주입, WebRTC 연결, Android 앱 빌드 | **미확인** (Windows PC·브라우저·Android SDK 없음) |
+| 참고 | 이 저장소의 기본 브랜치는 `claude/android-web-virtual-pc-control-cesrm0` 하나뿐이며 `main`이 없습니다. |
