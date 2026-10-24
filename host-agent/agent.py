@@ -202,16 +202,23 @@ def main() -> None:
 
     logger.info("에이전트 시작 (http=%s, ws=%s)", args.http, args.ws)
 
-    try:
-        asyncio.run(run_agent(args.http, args.ws, enable_recording=not args.no_record))
-    except KeyboardInterrupt:
-        logger.info("에이전트를 종료합니다.")
-    except Exception:
-        logger.exception(
-            "예상치 못한 오류로 에이전트가 종료되었습니다. "
-            "이 폴더의 agent.log 파일 내용을 복사해서 알려주세요."
-        )
-        raise
+    # 부팅 직후에는 서버/네트워크가 아직 안 떠 있을 수 있고, 접속이 끊길 수도 있다.
+    # 죽지 말고 잠시 쉬었다가 계속 다시 접속을 시도한다. (Ctrl+C로만 종료)
+    retry_seconds = 5
+    while True:
+        try:
+            asyncio.run(run_agent(args.http, args.ws, enable_recording=not args.no_record))
+            logger.warning("서버와의 연결이 끝났습니다. %d초 뒤 다시 접속합니다.", retry_seconds)
+        except KeyboardInterrupt:
+            logger.info("에이전트를 종료합니다.")
+            return
+        except Exception:
+            logger.exception(
+                "에이전트 오류 (서버가 아직 안 떠 있을 수 있습니다). %d초 뒤 다시 시도합니다. "
+                "계속 반복되면 이 폴더의 agent.log 파일 내용을 복사해서 알려주세요.",
+                retry_seconds,
+            )
+        time.sleep(retry_seconds)
 
 
 if __name__ == "__main__":
